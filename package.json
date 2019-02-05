@@ -1,0 +1,17 @@
+{
+  "name": "csc596",
+  "version": "1.0.0",
+  "description": "Web Simulator",
+  "main": "index.js",
+  "dependencies": {
+    "hyperapp": "^1.2.9",
+    "parcel": "^1.11.0"
+  },
+  "start": "parcel ./src/index.html --out-dir ./dist",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Saket Roy",
+  "license": "ISC"
+}

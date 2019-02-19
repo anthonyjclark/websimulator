@@ -1,4 +1,5 @@
 import { h, app } from 'hyperapp';
+import './js/trial';
 
 const state = {
     //No-op
@@ -10,9 +11,7 @@ const actions = {
 };
 
 const view = (state, actions) => (
-  <div class="container">
-    <h1>CatUSim</h1>
-  </div>
-);
+  <div></div>
+);  
 
 const main = app(state, actions, view, document.body);

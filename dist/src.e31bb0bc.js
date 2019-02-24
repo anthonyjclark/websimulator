@@ -47020,7 +47020,7 @@ World.prototype.clearForces = function(){
 },{"../collision/AABB":3,"../collision/ArrayCollisionMatrix":4,"../collision/NaiveBroadphase":7,"../collision/Ray":9,"../collision/RaycastResult":10,"../equations/ContactEquation":19,"../equations/FrictionEquation":21,"../material/ContactMaterial":24,"../material/Material":25,"../math/Quaternion":28,"../math/Vec3":30,"../objects/Body":31,"../shapes/Shape":43,"../solver/GSSolver":46,"../utils/EventTarget":49,"../utils/TupleDictionary":52,"../utils/Vec3Pool":54,"./Narrowphase":55}]},{},[2])
 (2)
 });
-},{}],"js/trial.js":[function(require,module,exports) {
+},{}],"js/slide.js":[function(require,module,exports) {
 "use strict";
 
 var THREE = _interopRequireWildcard(require("three"));
@@ -47030,7 +47030,7 @@ var CANNON = _interopRequireWildcard(require("cannon"));
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 var world,
-    timeStep = 1 / 10,
+    timeStep = 1 / 30,
     scene,
     renderer,
     camera,
@@ -47038,6 +47038,7 @@ var world,
     sphereBody,
     sphereShape,
     groundShape,
+    groundMaterial,
     ground,
     groundBody,
     groundShape,
@@ -47045,7 +47046,8 @@ var world,
 
 var GRID_HELPER_SIZE = 40,
     GRID_HELPER_STEP = 2,
-    MASS = 0.5;
+    MASS = 5,
+    RADIUS = 5;
 initThree();
 initCannon();
 animate();
@@ -47054,29 +47056,30 @@ function initCannon() {
   world = new CANNON.World();
   world.broadphase = new CANNON.NaiveBroadphase();
   sphereShape = new CANNON.Sphere();
-  groundShape = new CANNON.Plane();
   sphereBody = new CANNON.Body({
-    mass: MASS
+    mass: MASS,
+    material: groundMaterial
   });
+  groundShape = new CANNON.Plane();
+  groundMaterial = new CANNON.Material();
   groundBody = new CANNON.Body({
-    mass: 0 // mass == 0 makes the body static
-
+    mass: 0,
+    material: groundMaterial
   });
-  world.solver.iterations = 10;
-  world.gravity.set(0, -9.8, 0);
-  world.defaultContactMaterial.contactEquationStiffness = 1e9;
-  world.defaultContactMaterial.contactEquationRegularizationTime = 4;
-  sphereBody.addShape(sphereShape);
-  sphereBody.position.set(0, 500, 0);
-  sphereBody.linearDamping = 0;
-  world.addBody(sphereBody);
+  world.gravity.set(0, -10, 0);
   groundBody.addShape(groundShape);
-  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+  sphereBody.addShape(sphereShape);
+  sphereBody.position.set(0, 100, 0);
+  sphereBody.linearDamping = 0;
   world.addBody(groundBody);
-  var ballContact = new CANNON.ContactMaterial(groundBody, sphereBody, {//     friction: 0,
-    //     restitution: 1 
+  world.addBody(sphereBody);
+  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 1, 0), -Math.PI / 6);
+  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 6);
+  var contactMaterial = new CANNON.ContactMaterial(groundMaterial, groundBody, {
+    friction: 0.0,
+    restitution: 1.0
   });
-  world.addContactMaterial(ballContact);
+  world.addContactMaterial(contactMaterial);
 }
 
 function initThree() {
@@ -47099,17 +47102,16 @@ function initThree() {
   scene.add(light);
   scene.add(camera);
   scene.add(gridHelper);
-  var geometry = new THREE.SphereGeometry(15, 16, 16),
-      material = new THREE.MeshBasicMaterial({
+  var sphereGeometry = new THREE.SphereGeometry(RADIUS, 16, 16),
+      sphereMaterial = new THREE.MeshBasicMaterial({
     color: 0xFFF550,
     wireframe: true
-  });
-  sphere = new THREE.Mesh(geometry, material);
-  var groundGeometry = new THREE.BoxGeometry(100, 1, 100),
+  }),
+      groundGeometry = new THREE.BoxGeometry(50, 200, 1),
       groundMaterial = new THREE.MeshLambertMaterial({
     color: 0x654321
-  }); //groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
-
+  });
+  sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.receiveShadow = true; // ADD OBJECTS TO SCENE
 
@@ -47128,9 +47130,8 @@ function updatePhysics() {
   world.step(timeStep);
   totaltime += timeStep;
 
-  if (totaltime < 2) {
-    // console.log(totaltime+","sphere.position.x,",",sphere.position.y,',', sphere.position.z);
-    console.log(",".concat(totaltime, ",").concat(sphere.position.x, ",").concat(sphere.position.y, ",").concat(sphere.position.z));
+  if (totaltime < 5) {
+    console.log("".concat(sphere.position.x, ",").concat(sphere.position.y, ",").concat(sphere.position.z));
   } // Copy coordinates from Cannon.js to Three.js
 
 
@@ -47148,7 +47149,7 @@ function render() {
 
 var _hyperapp = require("hyperapp");
 
-require("./js/trial");
+require("./js/slide");
 
 var state = {//No-op
 }; //Need to import Actions
@@ -47160,7 +47161,7 @@ var view = function view(state, actions) {
 };
 
 var main = (0, _hyperapp.app)(state, actions, view, document.body);
-},{"hyperapp":"../node_modules/hyperapp/src/index.js","./js/trial":"js/trial.js"}],"../../../../../usr/local/lib/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"hyperapp":"../node_modules/hyperapp/src/index.js","./js/slide":"js/slide.js"}],"../../../../../usr/local/lib/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -47187,7 +47188,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61760" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64292" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

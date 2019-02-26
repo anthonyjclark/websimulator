@@ -47034,11 +47034,18 @@ var world,
     scene,
     renderer,
     camera,
-    sphere,
-    sphereBody,
+    sphere1,
+    sphere2,
+    sphere3,
+    sphereBody1,
+    sphereBody2,
+    sphereBody3,
     sphereShape,
     groundShape,
     groundMaterial,
+    mat1,
+    mat2,
+    mat3,
     ground,
     groundBody,
     groundShape,
@@ -47056,30 +47063,58 @@ function initCannon() {
   world = new CANNON.World();
   world.broadphase = new CANNON.NaiveBroadphase();
   sphereShape = new CANNON.Sphere();
-  sphereBody = new CANNON.Body({
-    mass: MASS,
-    material: groundMaterial
-  });
   groundShape = new CANNON.Plane();
   groundMaterial = new CANNON.Material();
+  mat1 = new CANNON.Material();
+  mat2 = new CANNON.Material();
+  mat3 = new CANNON.Material();
+  sphereBody1 = new CANNON.Body({
+    mass: MASS * MASS,
+    material: mat1,
+    position: new CANNON.Vec3(0, 100, -100 + RADIUS + 1)
+  });
+  sphereBody2 = new CANNON.Body({
+    mass: MASS,
+    material: mat2,
+    position: new CANNON.Vec3(RADIUS * 3, 100, -100 + RADIUS + 1)
+  });
+  sphereBody3 = new CANNON.Body({
+    mass: MASS,
+    material: mat3,
+    position: new CANNON.Vec3(-RADIUS * 3, 100, -100 + RADIUS + 1)
+  });
   groundBody = new CANNON.Body({
     mass: 0,
     material: groundMaterial
   });
   world.gravity.set(0, -10, 0);
   groundBody.addShape(groundShape);
-  sphereBody.addShape(sphereShape);
-  sphereBody.position.set(0, 100, 0);
-  sphereBody.linearDamping = 0;
+  sphereBody1.addShape(sphereShape);
+  sphereBody2.addShape(sphereShape);
+  sphereBody3.addShape(sphereShape);
+  sphereBody1.linearDamping = 0;
+  sphereBody2.linearDamping = 0;
+  sphereBody3.linearDamping = 0;
   world.addBody(groundBody);
-  world.addBody(sphereBody);
-  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 1, 0), -Math.PI / 6);
-  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 6);
-  var contactMaterial = new CANNON.ContactMaterial(groundMaterial, groundBody, {
-    friction: 0.0,
-    restitution: 1.0
+  world.addBody(sphereBody1);
+  world.addBody(sphereBody2);
+  world.addBody(sphereBody3);
+  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 3);
+  var contactMaterial1 = new CANNON.ContactMaterial(groundMaterial, mat1, {
+    friction: 1.0,
+    restitution: 0.0
   });
-  world.addContactMaterial(contactMaterial);
+  var contactMaterial2 = new CANNON.ContactMaterial(groundMaterial, mat2, {
+    friction: 1.0,
+    restitution: 0.0
+  });
+  var contactMaterial3 = new CANNON.ContactMaterial(groundMaterial, mat3, {
+    friction: 1.0,
+    restitution: 0.0
+  });
+  world.addContactMaterial(contactMaterial1);
+  world.addContactMaterial(contactMaterial2);
+  world.addContactMaterial(contactMaterial3);
 }
 
 function initThree() {
@@ -47102,20 +47137,34 @@ function initThree() {
   scene.add(light);
   scene.add(camera);
   scene.add(gridHelper);
-  var sphereGeometry = new THREE.SphereGeometry(RADIUS, 16, 16),
-      sphereMaterial = new THREE.MeshBasicMaterial({
+  var sphere1Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
+      sphere1Material = new THREE.MeshBasicMaterial({
+    color: 0xFF0000,
+    wireframe: true
+  });
+  var sphere2Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
+      sphere2Material = new THREE.MeshBasicMaterial({
+    color: 0x0000FF,
+    wireframe: true
+  });
+  var sphere3Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
+      sphere3Material = new THREE.MeshBasicMaterial({
     color: 0xFFF550,
     wireframe: true
   }),
       groundGeometry = new THREE.BoxGeometry(50, 200, 1),
       groundMaterial = new THREE.MeshLambertMaterial({
-    color: 0x654321
+    color: 0x90ee90
   });
-  sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  sphere1 = new THREE.Mesh(sphere1Geometry, sphere1Material);
+  sphere2 = new THREE.Mesh(sphere2Geometry, sphere2Material);
+  sphere3 = new THREE.Mesh(sphere3Geometry, sphere3Material);
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.receiveShadow = true; // ADD OBJECTS TO SCENE
 
-  scene.add(sphere);
+  scene.add(sphere1);
+  scene.add(sphere2);
+  scene.add(sphere3);
   scene.add(ground);
 }
 
@@ -47127,16 +47176,18 @@ function animate() {
 
 function updatePhysics() {
   // Step the physics world
-  world.step(timeStep);
-  totaltime += timeStep;
+  world.step(timeStep); // totaltime+=timeStep;
+  // if(totaltime < 5){
+  //     console.log(`${sphere.position.x},${sphere.position.y},${sphere.position.z}` );
+  // }
+  // Copy coordinates from Cannon.js to Three.js
 
-  if (totaltime < 5) {
-    console.log("".concat(sphere.position.x, ",").concat(sphere.position.y, ",").concat(sphere.position.z));
-  } // Copy coordinates from Cannon.js to Three.js
-
-
-  sphere.position.copy(sphereBody.position);
-  sphere.quaternion.copy(sphereBody.quaternion);
+  sphere1.position.copy(sphereBody1.position);
+  sphere1.quaternion.copy(sphereBody1.quaternion);
+  sphere2.position.copy(sphereBody2.position);
+  sphere2.quaternion.copy(sphereBody2.quaternion);
+  sphere3.position.copy(sphereBody3.position);
+  sphere3.quaternion.copy(sphereBody3.quaternion);
   ground.position.copy(groundBody.position);
   ground.quaternion.copy(groundBody.quaternion);
 }
@@ -47188,7 +47239,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64292" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64342" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

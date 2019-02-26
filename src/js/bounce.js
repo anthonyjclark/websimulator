@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon';
 
-var world, timeStep=1/10, scene, renderer, camera, sphere, 
+var world, timeStep=1/10, scene, renderer, camera, sphere, mat1,
     sphereBody, sphereShape, groundShape, groundMaterial, 
     ground, groundBody, groundShape,totaltime=0;
 
@@ -25,7 +25,7 @@ function initCannon() {
         mass: MASS,
         material: groundMaterial
     });
-
+    mat1 = new CANNON.Material();
     groundShape = new CANNON.Plane();
     groundMaterial = new CANNON.Material();
     groundBody = new CANNON.Body({
@@ -44,8 +44,8 @@ function initCannon() {
     world.addBody(sphereBody);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
 
-    var contactMaterial = new CANNON.ContactMaterial(groundMaterial, groundBody, { 
-        friction: 0.0, 
+    var contactMaterial = new CANNON.ContactMaterial(groundMaterial, mat1, { 
+        friction: 1.0, 
         restitution: 1.0 
     });
 

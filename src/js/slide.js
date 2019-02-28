@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon';
+import 'three-orbitcontrols';
 
-var world, timeStep=1/30, scene, renderer, camera, sphere1, sphere2, sphere3,
+var world, timeStep=1/30, scene, renderer, camera, controls, sphere1, sphere2, sphere3,
     sphereBody1, sphereBody2, sphereBody3, sphereShape, groundShape, groundMaterial,
     mat1,mat2,mat3,ground, groundBody, groundShape,totaltime=0;
+
 
 // CONSTANTS
 var GRID_HELPER_SIZE = 40,
@@ -97,13 +99,13 @@ function initThree(){
     renderer = new THREE.WebGLRenderer();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.update();
+
     var light = new THREE.AmbientLight( 0x404040 ),
         directionalLight = new THREE.DirectionalLight( 0xffffff );
 
-
-    //var gridHelper = new THREE.GridHelper( GRID_HELPER_SIZE, GRID_HELPER_STEP );
-
-    renderer.setSize( window.innerWidth - 100 , window.innerHeight - 100 );
+    renderer.setSize( window.innerWidth, window.innerHeight);
     renderer.setClearColor( 0xadd8e6 );
     document.body.appendChild( renderer.domElement );
     camera.position.set(1,25,100); // camera position to x , y , z
@@ -116,7 +118,7 @@ function initThree(){
         camera.aspect = width/height;
         camera.UpdateProjectionMatrix();
     });
-    
+
     directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
 
     // INITIAL CANVAS

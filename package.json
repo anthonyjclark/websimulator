@@ -7,7 +7,8 @@
     "cannon": "^0.6.2",
     "hyperapp": "^1.2.9",
     "parcel": "^1.11.0",
-    "three": "^0.101.1"
+    "three": "^0.101.1",
+    "three-orbitcontrols": "^2.101.1"
   },
   "start": "parcel ./src/index.html --out-dir ./dist",
   "devDependencies": {},

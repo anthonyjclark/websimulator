@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {OrbitControls} from 'three';
 import * as CANNON from 'cannon';
 
 var world, timeStep=1/10, scene, renderer, camera, sphere, mat1,
@@ -58,11 +59,19 @@ function initThree(){
     scene = new THREE.Scene();
     renderer = new THREE.WebGLRenderer();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
 
     var light = new THREE.AmbientLight( 0x404040 ),
-        directionalLight = new THREE.DirectionalLight( 0xffffff ),
-        gridHelper = new THREE.GridHelper( GRID_HELPER_SIZE, GRID_HELPER_STEP );
+        directionalLight = new THREE.DirectionalLight( 0xffffff );
 
+    window.addEventListener('resize', function(){
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        renderer.setSize(width, height);
+        camera.aspect = width/height;
+        camera.UpdateProjectionMatrix();
+    });
+    
     renderer.setSize( window.innerWidth - 100 , window.innerHeight - 100 );
     renderer.setClearColor( 0xadd8e6 );
     document.body.appendChild( renderer.domElement );

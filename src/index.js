@@ -1,5 +1,5 @@
 import { h, app } from 'hyperapp';
-import './js/slide';
+import './js/constraints';
 
 const state = {
     //No-op

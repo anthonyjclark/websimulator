@@ -48098,14 +48098,13 @@ require("three-orbitcontrols");
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 var world,
-    timeStep = 1 / 30,
+    timeStep = 1 / 60,
     scene,
     renderer,
     camera,
-    controls,
     sphere1,
     sphere2,
-    sphere3,
+    box,
     sphereBody1,
     sphereBody2,
     sphereBody3,
@@ -48120,13 +48119,27 @@ var world,
     groundShape,
     totaltime = 0; // CONSTANTS
 
-var GRID_HELPER_SIZE = 40,
-    GRID_HELPER_STEP = 2,
-    MASS = 5,
+var MASS = 5,
     WIDTH = 50,
     LENGTH = 200,
     HEIGHT = 1,
-    RADIUS = 5;
+    RADIUS = 5,
+    PLAY = true; //BUTTONS - NEED TO MOVE TO HYPERAPP ACTIONS(?)
+
+document.querySelector('#pauseBtn').addEventListener('click', function () {
+  PLAY = false;
+  console.log(document.querySelector('#pauseBtn').innerHTML);
+  console.log('pause Accessed');
+});
+document.querySelector('#playBtn').addEventListener('click', function () {
+  PLAY = true;
+  console.log(document.querySelector('#playBtn').innerHTML);
+  console.log('play Accessed');
+});
+document.querySelector('#trialBtn').addEventListener('click', function () {
+  console.log(document.querySelector('#trialBtn').innerHTML);
+  console.log('button works!');
+});
 initThree();
 initCannon();
 animate();
@@ -48143,7 +48156,7 @@ function initCannon() {
   sphereBody1 = new CANNON.Body({
     mass: MASS,
     material: mat1,
-    position: new CANNON.Vec3(RADIUS * 3, 100, -LENGTH / 2 + RADIUS + 1)
+    position: new CANNON.Vec3(-RADIUS * 3, 100, -LENGTH / 2 + RADIUS + 1)
   });
   sphereBody2 = new CANNON.Body({
     mass: MASS,
@@ -48153,7 +48166,7 @@ function initCannon() {
   sphereBody3 = new CANNON.Body({
     mass: MASS,
     material: mat3,
-    position: new CANNON.Vec3(-RADIUS * 3, 100, -LENGTH / 2 + RADIUS + 1)
+    position: new CANNON.Vec3(RADIUS * 3, 100, -LENGTH / 2 + RADIUS + 1)
   });
   groundBody = new CANNON.Body({
     mass: 0,
@@ -48195,8 +48208,7 @@ function initThree() {
   scene = new THREE.Scene();
   renderer = new THREE.WebGLRenderer();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.update();
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
   var light = new THREE.AmbientLight(0x404040),
       directionalLight = new THREE.DirectionalLight(0xffffff);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -48209,66 +48221,66 @@ function initThree() {
     var width = window.innerWidth;
     var height = window.innerHeight;
     renderer.setSize(width, height);
-    camera.aspect = width / height;
-    camera.UpdateProjectionMatrix();
+    camera.aspect = width / height; //camera.UpdateProjectionMatrix();
   });
   directionalLight.position.set(1, 0.75, 0.5).normalize(); // INITIAL CANVAS
 
   scene.add(directionalLight);
   scene.add(light);
-  scene.add(camera); //scene.add(gridHelper);
-
-  var sphere1Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
-      sphere1Material = new THREE.MeshBasicMaterial({
-    color: 0xFF0000,
-    wireframe: true
+  scene.add(camera);
+  console.log();
+  var cubeTexture = new THREE.TextureLoader().load('./img/cube/color.jpg');
+  var sphereTexture = new THREE.TextureLoader().load('./img/sphere/sphereTexture.png');
+  var sphere1Geometry = new THREE.SphereGeometry(RADIUS, 64, 64),
+      sphere1Material = new THREE.MeshLambertMaterial({
+    //color: 0x000000, 
+    envMap: sphereTexture
   });
-  var sphere2Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
+  var sphere2Geometry = new THREE.SphereGeometry(RADIUS, 64, 64),
       sphere2Material = new THREE.MeshBasicMaterial({
-    color: 0x0000FF,
-    wireframe: true
+    //color: 0x0000FF, 
+    envMap: sphereTexture
   });
-  var sphere3Geometry = new THREE.SphereGeometry(RADIUS, 16, 16),
-      sphere3Material = new THREE.MeshBasicMaterial({
-    color: 0xFFF550,
-    wireframe: true
-  }),
-      groundGeometry = new THREE.BoxGeometry(WIDTH, LENGTH, HEIGHT),
+  var boxGeometry = new THREE.BoxGeometry(8, 8, 8),
+      boxMaterial = new THREE.MeshBasicMaterial({
+    map: cubeTexture
+  });
+  var groundGeometry = new THREE.BoxGeometry(WIDTH, LENGTH, HEIGHT),
       groundMaterial = new THREE.MeshLambertMaterial({
-    color: 0x90ee90
+    color: 0x90EE90
   });
   sphere1 = new THREE.Mesh(sphere1Geometry, sphere1Material);
   sphere2 = new THREE.Mesh(sphere2Geometry, sphere2Material);
-  sphere3 = new THREE.Mesh(sphere3Geometry, sphere3Material);
+  box = new THREE.Mesh(boxGeometry, boxMaterial);
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.receiveShadow = true; // ADD OBJECTS TO SCENE
 
   scene.add(sphere1);
   scene.add(sphere2);
-  scene.add(sphere3);
+  scene.add(box);
   scene.add(ground);
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  updatePhysics();
+
+  if (PLAY) {
+    updatePhysics();
+  }
+
   render();
 }
 
 function updatePhysics() {
   // Step the physics world
-  world.step(timeStep); // totaltime+=timeStep;
-  // if(totaltime < 5){
-  //     console.log(`${sphere.position.x},${sphere.position.y},${sphere.position.z}` );
-  // }
-  // Copy coordinates from Cannon.js to Three.js
+  world.step(timeStep); // Copy coordinates from Cannon.js to Three.js
 
   sphere1.position.copy(sphereBody1.position);
   sphere1.quaternion.copy(sphereBody1.quaternion);
   sphere2.position.copy(sphereBody2.position);
   sphere2.quaternion.copy(sphereBody2.quaternion);
-  sphere3.position.copy(sphereBody3.position);
-  sphere3.quaternion.copy(sphereBody3.quaternion);
+  box.position.copy(sphereBody3.position);
+  box.quaternion.copy(sphereBody3.quaternion);
   ground.position.copy(groundBody.position);
   ground.quaternion.copy(groundBody.quaternion);
 }
@@ -48289,7 +48301,15 @@ var state = {//No-op
 var actions = {};
 
 var view = function view(state, actions) {
-  return (0, _hyperapp.h)("div", null);
+  return (0, _hyperapp.h)("div", {
+    id: "buttonsBar"
+  }, "Interact:", (0, _hyperapp.h)("button", {
+    id: "playBtn"
+  }, "1"), (0, _hyperapp.h)("button", {
+    id: "pauseBtn"
+  }, "2"), (0, _hyperapp.h)("button", {
+    id: "trialBtn"
+  }, "3"));
 };
 
 var main = (0, _hyperapp.app)(state, actions, view, document.body);
@@ -48320,7 +48340,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56617" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59505" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

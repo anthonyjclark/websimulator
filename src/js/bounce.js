@@ -7,8 +7,6 @@ var world, timeStep=1/10, scene, renderer, camera, sphere, mat1,
     ground, groundBody, groundShape,totaltime=0;
 
 // CONSTANTS
-var GRID_HELPER_SIZE = 40,
-    GRID_HELPER_STEP = 2,
     MASS = 5,
     RADIUS = 10;
 

@@ -7,11 +7,14 @@ const state = {
 
 //Need to import Actions
 const actions = {
-  
 };
 
 const view = (state, actions) => (
-  <div></div>
+<div id = "buttonsBar">Interact:
+  <button id = "playBtn">1</button>
+  <button id = "pauseBtn">2</button>
+  <button id = "trialBtn">3</button>
+</div>
 );  
 
 const main = app(state, actions, view, document.body);

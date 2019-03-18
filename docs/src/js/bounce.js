@@ -24,6 +24,7 @@ function initCannon() {
         mass: MASS,
         material: groundMaterial
     });
+    
     mat1 = new CANNON.Material();
     groundShape = new CANNON.Plane();
     groundMaterial = new CANNON.Material();

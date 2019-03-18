@@ -48155,11 +48155,11 @@ function initCannon() {
   world = new CANNON.World();
   world.broadphase = new CANNON.NaiveBroadphase();
   sphereShape = new CANNON.Sphere(RADIUS);
-  rearAxleShape = new CANNON.Box(new CANNON.Vec3(5, 2, 0.5));
-  frontAxleShape = new CANNON.Box(new CANNON.Vec3(5, 2, 0.5));
+  rearAxleShape = new CANNON.Box(new CANNON.Vec3(5, 2, 0.5)); // frontAxleShape = new CANNON.Box(new CANNON.Vec3(5,2,0.5));
+
   groundShape = new CANNON.Plane();
-  groundMaterial = new CANNON.Material();
-  frontAxleMaterial = new CANNON.Material();
+  groundMaterial = new CANNON.Material(); // frontAxleMaterial = new CANNON.Material();
+
   rearAxleMaterial = new CANNON.Material();
   sphereMaterial = new CANNON.Material();
   rightRearWheelBody = new CANNON.Body({
@@ -48186,12 +48186,12 @@ function initCannon() {
     mass: MASS,
     material: rearAxleMaterial,
     position: new CANNON.Vec3(0, 10, 0)
-  });
-  frontAxleBody = new CANNON.Body({
-    mass: MASS,
-    material: frontAxleMaterial,
-    position: new CANNON.Vec3(0, 10, 30)
-  });
+  }); // frontAxleBody = new CANNON.Body({ 
+  //     mass: MASS, 
+  //     material: frontAxleMaterial,
+  //     position: new CANNON.Vec3(0,10,30)
+  // });
+
   groundBody = new CANNON.Body({
     mass: 0,
     material: groundMaterial
@@ -48205,33 +48205,32 @@ function initCannon() {
   leftRearWheelBody.addShape(sphereShape);
   rightFrontWheelBody.addShape(sphereShape);
   leftFrontWheelBody.addShape(sphereShape);
-  rearAxleBody.addShape(rearAxleShape);
-  frontAxleBody.addShape(frontAxleShape); //Copy the ground quaternion to so that axle(s) are always parallel to the ground
+  rearAxleBody.addShape(rearAxleShape); //frontAxleBody.addShape(frontAxleShape);
+  //Copy the ground quaternion to so that axle(s) are always parallel to the ground
 
   groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2.5);
-  rearAxleBody.quaternion.copy(groundBody.quaternion);
-  frontAxleBody.quaternion.copy(groundBody.quaternion);
+  rearAxleBody.quaternion.copy(groundBody.quaternion); //frontAxleBody.quaternion.copy(groundBody.quaternion);
+
   var contactMaterial1 = new CANNON.ContactMaterial(groundMaterial, sphereMaterial, {
     friction: 1.0,
     restitution: 0.0
   });
   world.addContactMaterial(contactMaterial1);
   var rightRear_axle = new CANNON.DistanceConstraint(rightRearWheelBody, rearAxleBody, 10);
-  var leftRear_axle = new CANNON.DistanceConstraint(leftRearWheelBody, rearAxleBody, 10);
-  var rightFront_axle = new CANNON.DistanceConstraint(rightFrontWheelBody, frontAxleBody, 10);
-  var leftFront_axle = new CANNON.DistanceConstraint(leftFrontWheelBody, frontAxleBody, 10);
+  var leftRear_axle = new CANNON.DistanceConstraint(leftRearWheelBody, rearAxleBody, 10); // var rightFront_axle = new CANNON.DistanceConstraint(rightFrontWheelBody, frontAxleBody, 10);
+  // var leftFront_axle = new CANNON.DistanceConstraint(leftFrontWheelBody, frontAxleBody, 10);
+
   world.addConstraint(rightRear_axle);
-  world.addConstraint(leftRear_axle);
-  world.addConstraint(rightFront_axle);
-  world.addConstraint(leftFront_axle);
+  world.addConstraint(leftRear_axle); // world.addConstraint(rightFront_axle);
+  // world.addConstraint(leftFront_axle);
+
   world.gravity.set(0, -10, 0);
   world.addBody(groundBody);
   world.addBody(rightRearWheelBody);
   world.addBody(leftRearWheelBody);
   world.addBody(rightFrontWheelBody);
   world.addBody(leftFrontWheelBody);
-  world.addBody(rearAxleBody);
-  world.addBody(frontAxleBody);
+  world.addBody(rearAxleBody); // world.addBody(frontAxleBody);
 }
 
 function initThree() {
@@ -48283,11 +48282,11 @@ function initThree() {
   var rearAxleGeometry = new THREE.BoxGeometry(RADIUS * 6 - 10, 1, 1),
       rearAxleMaterial = new THREE.MeshLambertMaterial({
     color: 0x000000
-  });
-  var frontAxleGeometry = new THREE.BoxGeometry(RADIUS * 6 - 10, 1, 1),
-      frontAxleMaterial = new THREE.MeshLambertMaterial({
-    color: 0x000000
-  });
+  }); // var frontAxleGeometry = new THREE.BoxGeometry(RADIUS*6-10,1,1),
+  //     frontAxleMaterial = new THREE.MeshLambertMaterial({
+  //         color: 0x000000
+  //     })    
+
   var groundGeometry = new THREE.BoxGeometry(WIDTH, LENGTH, HEIGHT),
       groundMaterial = new THREE.MeshLambertMaterial({
     color: 0x90EE90
@@ -48297,16 +48296,16 @@ function initThree() {
   rightFrontWheel = new THREE.Mesh(rightFrontWheelGeometry, rightFrontWheelMaterial);
   leftFrontWheel = new THREE.Mesh(leftFrontWheelGeometry, leftFrontWheelMaterial);
   rearAxle = new THREE.Mesh(rearAxleGeometry, rearAxleMaterial);
-  ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  frontAxle = new THREE.Mesh(frontAxleGeometry, frontAxleMaterial);
+  ground = new THREE.Mesh(groundGeometry, groundMaterial); //frontAxle = new THREE.Mesh(frontAxleGeometry, frontAxleMaterial);
+
   ground.receiveShadow = true; // ADD OBJECTS TO SCENE
 
   scene.add(rightRearWheel);
   scene.add(leftRearWheel);
   scene.add(rightFrontWheel);
   scene.add(leftFrontWheel);
-  scene.add(rearAxle);
-  scene.add(frontAxle);
+  scene.add(rearAxle); // scene.add(frontAxle);
+
   scene.add(ground);
 }
 
@@ -48333,9 +48332,9 @@ function updatePhysics() {
   leftFrontWheel.position.copy(leftFrontWheelBody.position);
   leftFrontWheel.quaternion.copy(leftFrontWheelBody.quaternion);
   rearAxle.position.copy(rearAxleBody.position);
-  rearAxle.quaternion.copy(rearAxleBody.quaternion);
-  frontAxle.position.copy(frontAxleBody.position);
-  frontAxle.quaternion.copy(frontAxleBody.quaternion);
+  rearAxle.quaternion.copy(rearAxleBody.quaternion); // frontAxle.position.copy(frontAxleBody.position);
+  // frontAxle.quaternion.copy(frontAxleBody.quaternion);
+
   ground.position.copy(groundBody.position);
   ground.quaternion.copy(groundBody.quaternion);
 }
@@ -48395,7 +48394,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59537" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "63493" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

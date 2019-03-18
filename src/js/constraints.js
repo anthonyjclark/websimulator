@@ -45,10 +45,10 @@ function initCannon() {
 
     sphereShape = new CANNON.Sphere(RADIUS);
     rearAxleShape = new CANNON.Box(new CANNON.Vec3(5,2,0.5));
-    frontAxleShape = new CANNON.Box(new CANNON.Vec3(5,2,0.5));
+    // frontAxleShape = new CANNON.Box(new CANNON.Vec3(5,2,0.5));
     groundShape = new CANNON.Plane();
     groundMaterial = new CANNON.Material();
-    frontAxleMaterial = new CANNON.Material();
+    // frontAxleMaterial = new CANNON.Material();
     rearAxleMaterial = new CANNON.Material();
     sphereMaterial = new CANNON.Material();
 
@@ -82,11 +82,11 @@ function initCannon() {
         position: new CANNON.Vec3(0,10,0)
     });
     
-    frontAxleBody = new CANNON.Body({ 
-        mass: MASS, 
-        material: frontAxleMaterial,
-        position: new CANNON.Vec3(0,10,30)
-    });
+    // frontAxleBody = new CANNON.Body({ 
+    //     mass: MASS, 
+    //     material: frontAxleMaterial,
+    //     position: new CANNON.Vec3(0,10,30)
+    // });
 
     groundBody = new CANNON.Body({
         mass: 0, 
@@ -104,12 +104,12 @@ function initCannon() {
     rightFrontWheelBody.addShape(sphereShape);
     leftFrontWheelBody.addShape(sphereShape);
     rearAxleBody.addShape(rearAxleShape);
-    frontAxleBody.addShape(frontAxleShape);
+    //frontAxleBody.addShape(frontAxleShape);
 
     //Copy the ground quaternion to so that axle(s) are always parallel to the ground
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2.5);
     rearAxleBody.quaternion.copy(groundBody.quaternion);
-    frontAxleBody.quaternion.copy(groundBody.quaternion);
+    //frontAxleBody.quaternion.copy(groundBody.quaternion);
 
     var contactMaterial1 = new CANNON.ContactMaterial(groundMaterial, sphereMaterial, { 
         friction: 1.0, 
@@ -121,14 +121,14 @@ function initCannon() {
     var rightRear_axle = new CANNON.DistanceConstraint(rightRearWheelBody, rearAxleBody, 10);
     var leftRear_axle = new CANNON.DistanceConstraint(leftRearWheelBody, rearAxleBody, 10);
 
-    var rightFront_axle = new CANNON.DistanceConstraint(rightFrontWheelBody, frontAxleBody, 10);
-    var leftFront_axle = new CANNON.DistanceConstraint(leftFrontWheelBody, frontAxleBody, 10);
+    // var rightFront_axle = new CANNON.DistanceConstraint(rightFrontWheelBody, frontAxleBody, 10);
+    // var leftFront_axle = new CANNON.DistanceConstraint(leftFrontWheelBody, frontAxleBody, 10);
 
     
     world.addConstraint(rightRear_axle);
     world.addConstraint(leftRear_axle);
-    world.addConstraint(rightFront_axle);
-    world.addConstraint(leftFront_axle);
+    // world.addConstraint(rightFront_axle);
+    // world.addConstraint(leftFront_axle);
 
     world.gravity.set(0,-10,0);
     world.addBody(groundBody);
@@ -137,7 +137,7 @@ function initCannon() {
     world.addBody(rightFrontWheelBody);
     world.addBody(leftFrontWheelBody);
     world.addBody(rearAxleBody);
-    world.addBody(frontAxleBody);
+    // world.addBody(frontAxleBody);
 }
 
 function initThree(){
@@ -202,10 +202,10 @@ function initThree(){
         rearAxleMaterial = new THREE.MeshLambertMaterial({
             color: 0x000000
         });
-    var frontAxleGeometry = new THREE.BoxGeometry(RADIUS*6-10,1,1),
-        frontAxleMaterial = new THREE.MeshLambertMaterial({
-            color: 0x000000
-        })    
+    // var frontAxleGeometry = new THREE.BoxGeometry(RADIUS*6-10,1,1),
+    //     frontAxleMaterial = new THREE.MeshLambertMaterial({
+    //         color: 0x000000
+    //     })    
 
     var groundGeometry = new THREE.BoxGeometry(WIDTH, LENGTH, HEIGHT),
         groundMaterial = new THREE.MeshLambertMaterial({
@@ -218,7 +218,7 @@ function initThree(){
     leftFrontWheel = new THREE.Mesh(leftFrontWheelGeometry, leftFrontWheelMaterial); 
     rearAxle = new THREE.Mesh(rearAxleGeometry, rearAxleMaterial);
     ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    frontAxle = new THREE.Mesh(frontAxleGeometry, frontAxleMaterial);
+    //frontAxle = new THREE.Mesh(frontAxleGeometry, frontAxleMaterial);
 
 
     ground.receiveShadow = true;
@@ -229,7 +229,7 @@ function initThree(){
     scene.add(rightFrontWheel);
     scene.add(leftFrontWheel);
     scene.add(rearAxle);
-    scene.add(frontAxle);
+    // scene.add(frontAxle);
     scene.add(ground);
 }    
 
@@ -262,8 +262,8 @@ function updatePhysics() {
     rearAxle.position.copy(rearAxleBody.position);
     rearAxle.quaternion.copy(rearAxleBody.quaternion);
 
-    frontAxle.position.copy(frontAxleBody.position);
-    frontAxle.quaternion.copy(frontAxleBody.quaternion);
+    // frontAxle.position.copy(frontAxleBody.position);
+    // frontAxle.quaternion.copy(frontAxleBody.quaternion);
 
     ground.position.copy(groundBody.position);
     ground.quaternion.copy(groundBody.quaternion);

@@ -3,33 +3,48 @@
 // three vars
 var camera, scene, renderer, controls, spotLight;
 
+//CONSTANTS
+var MASS = 1,
+    LEG_RADIUS = 0.4,
+    LEG_HEIGHT = 2,
+    TORSO_X = 4,
+    TORSO_Y = 2,
+    TORSO_Z = 8;
+    
+
 // cannon vars
 var world, motor;
 var fixedTimeStep = 1.0 / 60.0;
 var maxSubSteps = 3;
 var lastTime;
 
-var motors = {
-    "right-rear-leg": motor, 
-    "right-front-leg":motor, 
-    "left-front-leg":motor, 
-    "left-rear-leg":motor
-};
-
+//Objects to store motors
+var limbJointMotors = {},
+    torsoLimbMotors = {},
+    objects = {}; // three/cannon objs
+   
 var pos_of_obj = {
-    "right-rear-leg": [2,2,4],
-    "right-front-leg": [2,2,-4],
-    "left-front-leg": [-2,2,4],
-    "left-rear-leg": [-2,2,-4]
+    "right-rear-leg": [2,2,-4],
+    "right-front-leg": [2,2,4],
+    "left-front-leg": [-2,2,-4],
+    "left-rear-leg": [-2,2,4],
+    "torso-left-rear": [-2,0,3.5],
+    "torso-right-rear": [2,0,3.5],
+    "torso-left-front": [-2,0,-3.5],
+    "torso-right-front": [2,0,-3.5]
 };
-
-
-// Combined three/cannon vars
-var objects = {};
 
 // Control vars
-var motor_direction = "back";
-
+var motor_direction = {
+    "right-rear-leg": "back",
+    "right-front-leg": "back",
+    "left-front-leg": "back",
+    "left-rear-leg": "back",
+    "torso-left-rear": "back",
+    "torso-right-rear": "back",
+    "torso-left-front":  "back",
+    "torso-right-front": "back"
+}
 // UI
 var is_paused = false;
 
@@ -55,6 +70,7 @@ function init() {
     initTHREE();
     initCANNON();
     addLegs();
+    addTorso();
 }
 
 function initUI() {
@@ -171,50 +187,29 @@ function initCANNON() {
     world.addBody(groundBody);
 }
 
-function initLeg(ulName, llName, LegPos, motorName) {
+function createLeg(ulName, llName, LegPos, motorName) {
 
     // Upper leg (cylinder)
     var ul_name = ulName,
-        ul_height = 2,
-        ul_radius = 0.4,
-        ul_mass = 0; // fix leg in plac,
-    (ul_position = [LegPos[0],LegPos[1]*2.1,LegPos[2]]), (ul_color = "green");
+        ul_height = LEG_HEIGHT,
+        ul_radius = LEG_RADIUS,
+        ul_mass = MASS; 
+        ul_position = [LegPos[0],LegPos[1]*2.1,LegPos[2]], 
+        ul_color = 0xFFF550;
 
     addCylinder(ul_name, ul_radius, ul_height, ul_position, ul_mass, ul_color);
 
     // Lower leg (cylinder)
     var ll_name = llName,
-        ll_height = 2,
-        ll_radius = 0.3,
-        ll_mass = 1,
+        ll_height = LEG_HEIGHT,
+        ll_radius = LEG_RADIUS - 0.1,
+        ll_mass = MASS,
         ll_position = LegPos,
-        ll_color = "blue";
+        ll_color = 0xFFFF00;
 
     addCylinder(ll_name, ll_radius, ll_height, ll_position, ll_mass, ll_color);
 
-    addJoint(ul_name, ll_name, motorName);
-}
-
-function addLegs(){
-    var rruLeg = 'right-rear-upper-leg',
-        rrlLeg = 'right-rear-lower-leg';
-    
-    initLeg(rruLeg, rrlLeg, pos_of_obj["right-rear-leg"], "right-rear-leg");
-
-    var rfuLeg = 'right-front-upper-leg',
-        rflLeg = 'right-front-lower-leg';
-
-    initLeg(rfuLeg, rflLeg, pos_of_obj["right-front-leg"], "right-front-leg");
-
-    var lruLeg = 'left-rear-upper-leg',
-        lrlLeg = 'left-rear-lower-leg';
-
-    initLeg(lruLeg, lrlLeg, pos_of_obj["left-rear-leg"], "left-rear-leg");
-
-    var lfuLeg = 'left-front-upper-leg',
-        lflLeg = 'left-front-lower-leg';
-
-    initLeg(lfuLeg, lflLeg, pos_of_obj["left-front-leg"], "left-front-leg");
+    addLegJoint(ul_name, ll_name, motorName);
 }
 
 function addCylinder(name, radius, height, position, mass, color) {
@@ -224,10 +219,6 @@ function addCylinder(name, radius, height, position, mass, color) {
     var mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     scene.add(mesh);
-
-    // spotLight.target = mesh;
-    // controls.target.copy( mesh.position );
-    // controls.update();
 
     // Create the physics object
     var shape = new CANNON.Cylinder(radius, radius, height, 10);
@@ -253,7 +244,69 @@ function addCylinder(name, radius, height, position, mass, color) {
     };
 }
 
-function addJoint(name1, name2, motorName) {
+function addLegs(){
+    var rruLeg = 'right-rear-leg-upper',
+        rrlLeg = 'right-rear-leg-lower';
+    
+    createLeg(rruLeg, rrlLeg, pos_of_obj["right-rear-leg"], "right-rear-leg");
+
+    var rfuLeg = 'right-front-leg-upper',
+        rflLeg = 'right-front-leg-lower';
+
+    createLeg(rfuLeg, rflLeg, pos_of_obj["right-front-leg"], "right-front-leg");
+
+    var lruLeg = 'left-rear-leg-upper',
+        lrlLeg = 'left-rear-leg-lower';
+
+    createLeg(lruLeg, lrlLeg, pos_of_obj["left-rear-leg"], "left-rear-leg");
+
+    var lfuLeg = 'left-front-leg-upper',
+        lflLeg = 'left-front-leg-lower';
+
+    createLeg(lfuLeg, lflLeg, pos_of_obj["left-front-leg"], "left-front-leg");
+
+}
+
+function addTorso(){
+
+    var geometry = new THREE.BoxGeometry(TORSO_X - LEG_RADIUS * 2, TORSO_Y + 0.1, TORSO_Z + 1),
+        material = new THREE.MeshStandardMaterial({ 
+            color: 0xB5651D 
+        }),
+        mesh = new THREE.Mesh(geometry, material);
+
+    mesh.castShadow = true;
+    scene.add(mesh);
+
+    var shape = new CANNON.Cylinder(1, 1, 4, 10);
+
+    var q = new CANNON.Quaternion();
+    q.setFromAxisAngle(new CANNON.Vec3(0, 0, 0), -Math.PI / 2);
+    var t = new CANNON.Vec3(0, 0, 0);
+    shape.transformAllPoints(t, q);
+
+    var body = new CANNON.Body({
+        mass: 0,
+        position: new CANNON.Vec3(0, 4.2, 0)
+    });
+
+    body.addShape(shape);
+
+    world.addBody(body);
+
+    objects['torso'] = {
+        mesh: mesh,
+        body: body
+    };
+
+    addTorsoJoint('left-rear-leg-upper', 'torso-left-rear', pos_of_obj['torso-left-rear']);
+    addTorsoJoint('right-rear-leg-upper', 'torso-right-rear', pos_of_obj['torso-right-rear']);
+    addTorsoJoint('left-front-leg-upper', 'torso-left-front', pos_of_obj['torso-left-front']);
+    addTorsoJoint('right-front-leg-upper', 'torso-right-front', pos_of_obj['torso-right-front']);
+
+}
+
+function addLegJoint(name1, name2, motorName) {
     motor = new CANNON.HingeConstraint(
         objects[name1].body,
         objects[name2].body,
@@ -265,22 +318,38 @@ function addJoint(name1, name2, motorName) {
         }
     );
 
-    motors[motorName] = motor;
+    limbJointMotors[motorName] = motor;
     motor.enableMotor();
-    motor.setMotorSpeed(3);
+    motor.setMotorSpeed(1);
     motor.collideConnected = false;
 
     world.addConstraint(motor);
 }
 
+function addTorsoJoint(legName, motorName, position) {
+    motor = new CANNON.HingeConstraint(
+        objects['torso'].body,
+        objects[legName].body,
+        {
+            pivotA: new CANNON.Vec3(position[0],position[1],position[2]),
+             axisA: new CANNON.Vec3(position[0], 0, 0)
+            //pivotB: new CANNON.Vec3(-2, 4.2, -4)
+            // axisB: new CANNON.Vec3(1, 0, 0)
+        }
+    );
+
+    torsoLimbMotors[motorName] = motor;
+    motor.enableMotor();
+    motor.setMotorSpeed(1);
+    motor.collideConnected = false;
+
+    world.addConstraint(motor);
+
+    
+}
+
 function animate(time) {
     requestAnimationFrame(animate);
-    // required if controls.enableDamping or controls.autoRotate are set to true
-    // controls.update();
-
-    // if (this.isFollowing) {
-    // camera.lookAt(cubeT.position);
-    // }
  
     if (!is_paused) {
         if (lastTime !== undefined) {
@@ -290,27 +359,51 @@ function animate(time) {
         lastTime = time;
     } else {
         lastTime = undefined;
-    }
+    };
 
     // Update rendered transform of all objects
     for (var obj of Object.values(objects)) {
         obj.mesh.position.copy(obj.body.position);
         obj.mesh.quaternion.copy(obj.body.quaternion);
-    }
+    };
 
     // // Angle between the two bodies of the motor
-    var right_rear_x = objects["right-rear-upper-leg"].body.quaternion,
-        right_rear_y = objects["right-rear-lower-leg"].body.quaternion,
-        right_rear_z = right_rear_x * right_rear_y.conjugate(),
-        right_rear_angle = 2 * Math.acos(right_rear_x.mult(right_rear_y.inverse()).w);
-    
-    if (motor_direction === "back" && right_rear_angle > Math.PI / 1.5) {
-        motors["right-rear-leg"].setMotorSpeed(-3);
-        motor_direction = "forward";
-    } else if (motor_direction === "forward" && right_rear_angle < 0.1) {
-        motors["right-rear-leg"].setMotorSpeed(3);
-        motor_direction = "back";
-    }
+
+    for(var motor of Object.keys(limbJointMotors)){
+        var upper_leg = objects[`${motor}-upper`],
+            lower_leg = objects[`${motor}-lower`],
+            rotation_upper = upper_leg.body.quaternion,
+            rotation_lower = lower_leg.body.quaternion,
+            z = rotation_upper.mult(rotation_lower.inverse())
+            angle = 2 * Math.acos(z.w);
+        
+        if (motor_direction[motor] === "back" && angle > Math.PI/3) {
+            limbJointMotors[motor].setMotorSpeed(-1);
+            motor_direction[motor] = "forward";
+        } else if (motor_direction[motor] === "forward" && angle < 0.1) {
+            limbJointMotors[motor].setMotorSpeed(1);
+            motor_direction[motor] = "back";
+        }
+    } 
+
+    for(var motor of Object.keys(torsoLimbMotors)){
+        var torso = objects[`torso`],
+            upper_leg = objects[`${motor.substr(motor.indexOf('-')+1)}-leg-upper`],
+            rotation_upper = torso.body.quaternion,
+            rotation_lower = upper_leg.body.quaternion,
+            z = rotation_upper.mult(rotation_lower.inverse())
+            angle = 2 * Math.acos(z.w);
+        
+        if (motor_direction[motor] === "back" && angle > Math.PI/3) {
+            torsoLimbMotors[motor].setMotorSpeed(-1);
+            motor_direction[motor] = "forward";
+        } else if (motor_direction[motor] === "forward" && angle < 0.1) {
+            torsoLimbMotors[motor].setMotorSpeed(1);
+            motor_direction[motor] = "back";
+        }
+    } 
 
     renderer.render(scene, camera);
 }
+    
+   

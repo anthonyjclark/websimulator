@@ -278,12 +278,12 @@ function addTorso(){
     mesh.castShadow = true;
     scene.add(mesh);
 
-    var shape = new CANNON.Cylinder(1, 1, 4, 10);
+    var shape = new CANNON.Box(new CANNON.Vec3((TORSO_X - LEG_RADIUS * 2)/2, (TORSO_Y + 0.1)/2, (TORSO_Z + 1)/2));
 
     var q = new CANNON.Quaternion();
     q.setFromAxisAngle(new CANNON.Vec3(0, 0, 0), -Math.PI / 2);
-    var t = new CANNON.Vec3(0, 0, 0);
-    shape.transformAllPoints(t, q);
+    // var t = new CANNON.Vec3(0, 0, 0);
+    // shape.transformAllPoints(t, q);
 
     var body = new CANNON.Body({
         mass: 0,

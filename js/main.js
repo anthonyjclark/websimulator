@@ -1,52 +1,34 @@
-// Simulation of a knee-joint using cannonjs and threejs
+// Physical constants
+var DENSITY = 500,
+    UPPER_LEG_RADIUS = 0.3,
+    UPPER_LEG_HEIGHT = 1.5,
+    UPPER_LEG_COLOR = "blue",
+    LOWER_LEG_RADIUS = 0.2,
+    LOWER_LEG_HEIGHT = 2,
+    LOWER_LEG_COLOR = "green",
+    TORSO_X = 4,
+    TORSO_Y = 0.75,
+    TORSO_Z = 2,
+    TORSO_COLOR = "gray";
 
 // three vars
 var camera, scene, renderer, controls, spotLight;
 
-//CONSTANTS
-var MASS = 1,
-    LEG_RADIUS = 0.4,
-    LEG_HEIGHT = 2,
-    TORSO_X = 4,
-    TORSO_Y = 2,
-    TORSO_Z = 8;
-    
-
 // cannon vars
-var world, motor;
-var fixedTimeStep = 1.0 / 60.0;
-var maxSubSteps = 3;
-var lastTime;
+var world;
 
-//Objects to store motors
-var limbJointMotors = {},
-    torsoLimbMotors = {},
-    objects = {}; // three/cannon objs
-   
-var pos_of_obj = {
-    "right-rear-leg": [2,2,-4],
-    "right-front-leg": [2,2,4],
-    "left-front-leg": [-2,2,-4],
-    "left-rear-leg": [-2,2,4],
-    "torso-left-rear": [-2,0,3.5],
-    "torso-right-rear": [2,0,3.5],
-    "torso-left-front": [-2,0,-3.5],
-    "torso-right-front": [2,0,-3.5]
-};
+var fixedTimeStep = 1.0 / 60.0,
+    maxSubSteps = 3,
+    lastTime;
 
-// Control vars
-var motor_direction = {
-    "right-rear-leg": "back",
-    "right-front-leg": "back",
-    "left-front-leg": "back",
-    "left-rear-leg": "back",
-    "torso-left-rear": "back",
-    "torso-right-rear": "back",
-    "torso-left-front":  "back",
-    "torso-right-front": "back"
-}
+// three/cannon objs
+var objects = {};
+
+// Joint control
+var motors = {};
+
 // UI
-var is_paused = false;
+var isPaused = false;
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -55,7 +37,7 @@ function onWindowResize() {
 }
 
 function togglePlayPause() {
-    is_paused = !is_paused;
+    isPaused = !isPaused;
 }
 
 function resetCamera() {
@@ -69,8 +51,7 @@ function init() {
     initUI();
     initTHREE();
     initCANNON();
-    addLegs();
-    addTorso();
+    initCat();
 }
 
 function initUI() {
@@ -87,7 +68,7 @@ function initTHREE() {
         fov = 65,
         near = 0.01,
         far = 500,
-        default_camera_position = [-8, 8, 8];
+        defaultCameraPosition = [-8, 8, 8];
 
     var canvasContainer = document.getElementById("canvas");
 
@@ -110,7 +91,7 @@ function initTHREE() {
 
     // Camera and controls
     camera = new THREE.PerspectiveCamera(fov, width / height, near, far);
-    camera.position.set(...default_camera_position);
+    camera.position.set(...defaultCameraPosition);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.minDistance = 2;
@@ -140,6 +121,7 @@ function initTHREE() {
 
     scene.add(spotLight);
 
+    // Helper methods for viewing the spotlight projection
     // renderer.setClearColor( 0x0 );
     // lightHelper = new THREE.SpotLightHelper( spotLight );
     // scene.add( lightHelper );
@@ -187,29 +169,59 @@ function initCANNON() {
     world.addBody(groundBody);
 }
 
-function createLeg(ulName, llName, LegPos, motorName) {
+function initCat() {
+    // Create the main torso
+    var pos = [0, UPPER_LEG_HEIGHT * 2, 0];
+    var mass = DENSITY * TORSO_X * TORSO_Y * TORSO_Z;
+    var torsoName = "torso";
 
-    // Upper leg (cylinder)
-    var ul_name = ulName,
-        ul_height = LEG_HEIGHT,
-        ul_radius = LEG_RADIUS,
-        ul_mass = MASS; 
-        ul_position = [LegPos[0],LegPos[1]*2.1,LegPos[2]], 
-        ul_color = 0xFFF550;
+    addBox(torsoName, TORSO_X, TORSO_Y, TORSO_Z, pos, mass, TORSO_COLOR);
 
-    addCylinder(ul_name, ul_radius, ul_height, ul_position, ul_mass, ul_color);
+    // Create the legs
+    createLeg(torsoName, "front", "left");
+    createLeg(torsoName, "front", "right");
+    createLeg(torsoName, "back", "left");
+    createLeg(torsoName, "back", "right");
 
-    // Lower leg (cylinder)
-    var ll_name = llName,
-        ll_height = LEG_HEIGHT,
-        ll_radius = LEG_RADIUS - 0.1,
-        ll_mass = MASS,
-        ll_position = LegPos,
-        ll_color = 0xFFFF00;
+    // Setup motors
+    setupMotors();
+}
 
-    addCylinder(ll_name, ll_radius, ll_height, ll_position, ll_mass, ll_color);
+function createLeg(parent, frontback, leftright) {
+    var fb = frontback === "front" ? 1 : -1;
+    var lr = leftright === "right" ? 1 : -1;
 
-    addLegJoint(ul_name, ll_name, motorName);
+    // Upper leg body
+    var ulName = `${frontback}-${leftright}-upper-leg`;
+
+    var ulPos = [
+        (TORSO_X / 2 - UPPER_LEG_RADIUS) * fb,
+        UPPER_LEG_HEIGHT * 1.5,
+        (TORSO_Z / 2 + UPPER_LEG_RADIUS) * lr
+    ];
+    var ulMass =
+        DENSITY *
+        Math.PI *
+        UPPER_LEG_RADIUS *
+        UPPER_LEG_RADIUS *
+        UPPER_LEG_HEIGHT;
+
+    addCylinder(
+        ulName,
+        UPPER_LEG_RADIUS,
+        UPPER_LEG_HEIGHT,
+        ulPos,
+        ulMass,
+        UPPER_LEG_COLOR
+    );
+
+    // Upper leg joint to torso
+    var ulPivot = [0, UPPER_LEG_HEIGHT / 2, 0];
+    var ulAxis = [0, 0, 1];
+    var torsoPivot = [ulPos[0], 0, ulPos[2]];
+    var torsoAxis = [0, 0, 1];
+    var mName = `${ulName}-motor`;
+    addHinge(parent, ulName, torsoPivot, ulPivot, torsoAxis, ulAxis, mName);
 }
 
 function addCylinder(name, radius, height, position, mass, color) {
@@ -238,120 +250,85 @@ function addCylinder(name, radius, height, position, mass, color) {
 
     world.addBody(body);
 
+    // Add cylinder to global list of objects
     objects[name] = {
         mesh: mesh,
         body: body
     };
 }
 
-function addLegs(){
-    var rruLeg = 'right-rear-leg-upper',
-        rrlLeg = 'right-rear-leg-lower';
-    
-    createLeg(rruLeg, rrlLeg, pos_of_obj["right-rear-leg"], "right-rear-leg");
-
-    var rfuLeg = 'right-front-leg-upper',
-        rflLeg = 'right-front-leg-lower';
-
-    createLeg(rfuLeg, rflLeg, pos_of_obj["right-front-leg"], "right-front-leg");
-
-    var lruLeg = 'left-rear-leg-upper',
-        lrlLeg = 'left-rear-leg-lower';
-
-    createLeg(lruLeg, lrlLeg, pos_of_obj["left-rear-leg"], "left-rear-leg");
-
-    var lfuLeg = 'left-front-leg-upper',
-        lflLeg = 'left-front-leg-lower';
-
-    createLeg(lfuLeg, lflLeg, pos_of_obj["left-front-leg"], "left-front-leg");
-
-}
-
-function addTorso(){
-
-    var geometry = new THREE.BoxGeometry(TORSO_X - LEG_RADIUS * 2, TORSO_Y + 0.1, TORSO_Z + 1),
-        material = new THREE.MeshStandardMaterial({ 
-            color: 0xB5651D 
-        }),
-        mesh = new THREE.Mesh(geometry, material);
-
+function addBox(name, xsize, ysize, zsize, position, mass, color) {
+    // Create rendered object
+    var geometry = new THREE.BoxGeometry(xsize, ysize, zsize);
+    var material = new THREE.MeshStandardMaterial({ color: color });
+    var mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     scene.add(mesh);
 
-    var shape = new CANNON.Box(new CANNON.Vec3((TORSO_X - LEG_RADIUS * 2)/2, (TORSO_Y + 0.1)/2, (TORSO_Z + 1)/2));
-
-    var q = new CANNON.Quaternion();
-    q.setFromAxisAngle(new CANNON.Vec3(0, 0, 0), -Math.PI / 2);
-    // var t = new CANNON.Vec3(0, 0, 0);
-    // shape.transformAllPoints(t, q);
+    // Create the physics object
+    var shape = new CANNON.Box(
+        new CANNON.Vec3(xsize / 2, ysize / 2, zsize / 2)
+    );
 
     var body = new CANNON.Body({
-        mass: 0,
-        position: new CANNON.Vec3(0, 4.2, 0)
+        mass: mass,
+        position: new CANNON.Vec3(...position)
     });
 
     body.addShape(shape);
 
     world.addBody(body);
 
-    objects['torso'] = {
+    // Add box to global list of objects
+    objects[name] = {
         mesh: mesh,
         body: body
     };
-
-    addTorsoJoint('left-rear-leg-upper', 'torso-left-rear', pos_of_obj['torso-left-rear']);
-    addTorsoJoint('right-rear-leg-upper', 'torso-right-rear', pos_of_obj['torso-right-rear']);
-    addTorsoJoint('left-front-leg-upper', 'torso-left-front', pos_of_obj['torso-left-front']);
-    addTorsoJoint('right-front-leg-upper', 'torso-right-front', pos_of_obj['torso-right-front']);
-
 }
 
-function addLegJoint(name1, name2, motorName) {
-    motor = new CANNON.HingeConstraint(
+function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
+    var motor = new CANNON.HingeConstraint(
         objects[name1].body,
         objects[name2].body,
         {
-            pivotA: new CANNON.Vec3(0, -1, 0),
-            axisA: new CANNON.Vec3(1, 0, 0),
-            pivotB: new CANNON.Vec3(0, 1, 0)
-            // axisB: new CANNON.Vec3(1, 0, 0)
+            pivotA: new CANNON.Vec3(...piv1),
+            axisA: new CANNON.Vec3(...ax1),
+            pivotB: new CANNON.Vec3(...piv2),
+            axisB: new CANNON.Vec3(...ax2)
         }
     );
 
-    limbJointMotors[motorName] = motor;
-    motor.enableMotor();
+    motors[motorName] = {
+        name: motorName,
+        servo: motor,
+        speed: 1,
+        angle: 0,
+        hi: Math.PI / 3,
+        lo: 0.1,
+        state: "back",
+        body1: objects[name1].body,
+        body2: objects[name2].body
+    };
+
+    // Move this
     motor.setMotorSpeed(1);
+
+    motor.enableMotor();
     motor.collideConnected = false;
 
     world.addConstraint(motor);
 }
 
-function addTorsoJoint(legName, motorName, position) {
-    motor = new CANNON.HingeConstraint(
-        objects['torso'].body,
-        objects[legName].body,
-        {
-            pivotA: new CANNON.Vec3(position[0],position[1],position[2]),
-             axisA: new CANNON.Vec3(position[0], 0, 0)
-            //pivotB: new CANNON.Vec3(-2, 4.2, -4)
-            // axisB: new CANNON.Vec3(1, 0, 0)
-        }
-    );
-
-    torsoLimbMotors[motorName] = motor;
-    motor.enableMotor();
-    motor.setMotorSpeed(1);
-    motor.collideConnected = false;
-
-    world.addConstraint(motor);
-
-    
+function setupMotors() {
+    // Setup motor angles, speeds, etc.
+    // This is just hard-coded in addHinge for now
 }
 
+var temp = true;
 function animate(time) {
     requestAnimationFrame(animate);
- 
-    if (!is_paused) {
+
+    if (!isPaused) {
         if (lastTime !== undefined) {
             var dt = (time - lastTime) / 1000;
             world.step(fixedTimeStep, dt, maxSubSteps);
@@ -359,51 +336,28 @@ function animate(time) {
         lastTime = time;
     } else {
         lastTime = undefined;
-    };
+    }
 
     // Update rendered transform of all objects
     for (var obj of Object.values(objects)) {
         obj.mesh.position.copy(obj.body.position);
         obj.mesh.quaternion.copy(obj.body.quaternion);
-    };
+    }
 
-    // // Angle between the two bodies of the motor
+    // Actuate motors
+    for (var mtr of Object.values(motors)) {
+        var rot1 = mtr.body1.quaternion;
+        var rot2 = mtr.body2.quaternion;
+        mtr.angle = 2* Math.acos(rot1.mult(rot2.inverse()).w)
 
-    for(var motor of Object.keys(limbJointMotors)){
-        var upper_leg = objects[`${motor}-upper`],
-            lower_leg = objects[`${motor}-lower`],
-            rotation_upper = upper_leg.body.quaternion,
-            rotation_lower = lower_leg.body.quaternion,
-            z = rotation_upper.mult(rotation_lower.inverse())
-            angle = 2 * Math.acos(z.w);
-        
-        if (motor_direction[motor] === "back" && angle > Math.PI/3) {
-            limbJointMotors[motor].setMotorSpeed(-1);
-            motor_direction[motor] = "forward";
-        } else if (motor_direction[motor] === "forward" && angle < 0.1) {
-            limbJointMotors[motor].setMotorSpeed(1);
-            motor_direction[motor] = "back";
+        if (mtr.state === "back" && mtr.angle > mtr.hi) {
+            mtr.servo.setMotorSpeed(-mtr.speed);
+            mtr.state = "forward";
+        } else if (mtr.state === "forward" && mtr.angle < mtr.lo) {
+            mtr.servo.setMotorSpeed(mtr.speed);
+            mtr.state = "back";
         }
-    } 
-
-    for(var motor of Object.keys(torsoLimbMotors)){
-        var torso = objects[`torso`],
-            upper_leg = objects[`${motor.substr(motor.indexOf('-')+1)}-leg-upper`],
-            rotation_upper = torso.body.quaternion,
-            rotation_lower = upper_leg.body.quaternion,
-            z = rotation_upper.mult(rotation_lower.inverse())
-            angle = 2 * Math.acos(z.w);
-        
-        if (motor_direction[motor] === "back" && angle > Math.PI/3) {
-            torsoLimbMotors[motor].setMotorSpeed(-1);
-            motor_direction[motor] = "forward";
-        } else if (motor_direction[motor] === "forward" && angle < 0.1) {
-            torsoLimbMotors[motor].setMotorSpeed(1);
-            motor_direction[motor] = "back";
-        }
-    } 
+    }
 
     renderer.render(scene, camera);
 }
-    
-   

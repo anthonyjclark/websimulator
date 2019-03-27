@@ -1,3 +1,5 @@
 
+Things to do:
 - CANNON materials
-- prettier settings
+- clean up global variables
+- setup motor limits

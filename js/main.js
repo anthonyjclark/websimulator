@@ -1,15 +1,16 @@
 // Physical constants
 var DENSITY = 500,
-    UPPER_LEG_RADIUS = 0.3,
-    UPPER_LEG_HEIGHT = 1.5,
+    UPPER_LEG_RADIUS = 0.15,
+    UPPER_LEG_HEIGHT = 0.75,
     UPPER_LEG_COLOR = "blue",
-    LOWER_LEG_RADIUS = 0.2,
-    LOWER_LEG_HEIGHT = 2,
+    LOWER_LEG_RADIUS = 0.1,
+    LOWER_LEG_HEIGHT = UPPER_LEG_HEIGHT,
     LOWER_LEG_COLOR = "green",
-    TORSO_X = 4,
-    TORSO_Y = 0.75,
-    TORSO_Z = 2,
-    TORSO_COLOR = "gray";
+    TORSO_X = 2,
+    TORSO_Y = 0.4,
+    TORSO_Z = 1,
+    TORSO_COLOR = "gray",
+    MAX_MOTOR_VEL = 1;
 
 // three vars
 var camera, scene, renderer, controls, spotLight;
@@ -192,7 +193,7 @@ function createLeg(parent, frontback, leftright) {
     var lr = leftright === "right" ? 1 : -1;
 
     // Upper leg body
-    var ulName = `${frontback}-${leftright}-upper-leg`;
+    var ulName = `${frontback}-upper-${leftright}-leg`;
 
     var ulPos = [
         (TORSO_X / 2 - UPPER_LEG_RADIUS) * fb,
@@ -222,6 +223,38 @@ function createLeg(parent, frontback, leftright) {
     var torsoAxis = [0, 0, 1];
     var mName = `${ulName}-motor`;
     addHinge(parent, ulName, torsoPivot, ulPivot, torsoAxis, ulAxis, mName);
+
+    // Lower leg
+    var llName = `${frontback}-lower-${leftright}-leg`;
+
+    var llPos = [
+        (TORSO_X / 2 - UPPER_LEG_RADIUS) * fb,
+        LOWER_LEG_HEIGHT * 0.5,
+        (TORSO_Z / 2 + UPPER_LEG_RADIUS) * lr
+    ];
+    var llMass =
+        DENSITY *
+        Math.PI *
+        LOWER_LEG_RADIUS *
+        LOWER_LEG_RADIUS *
+        LOWER_LEG_HEIGHT;
+
+    addCylinder(
+        llName,
+        LOWER_LEG_RADIUS,
+        LOWER_LEG_HEIGHT,
+        llPos,
+        llMass,
+        LOWER_LEG_COLOR
+    );
+
+    // Lower leg joint to upper leg
+    var llPivot = [0, LOWER_LEG_HEIGHT / 2, 0];
+    var llAxis = [0, 0, 1];
+    var ulPivot = [0, -UPPER_LEG_HEIGHT / 2, 0];
+    var ulAxis = [0, 0, 1];
+    var mName = `${llName}-motor`;
+    addHinge(ulName, llName, ulPivot, llPivot, ulAxis, llAxis, mName);
 }
 
 function addCylinder(name, radius, height, position, mass, color) {
@@ -295,23 +328,16 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
             axisA: new CANNON.Vec3(...ax1),
             pivotB: new CANNON.Vec3(...piv2),
             axisB: new CANNON.Vec3(...ax2)
+            // maxForce: 1e10
         }
     );
 
     motors[motorName] = {
-        name: motorName,
         servo: motor,
-        speed: 1,
-        angle: 0,
-        hi: Math.PI / 3,
-        lo: 0.1,
-        state: "back",
+        targetAngle: 0,
         body1: objects[name1].body,
         body2: objects[name2].body
     };
-
-    // Move this
-    motor.setMotorSpeed(1);
 
     motor.enableMotor();
     motor.collideConnected = false;
@@ -321,10 +347,23 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
 
 function setupMotors() {
     // Setup motor angles, speeds, etc.
-    // This is just hard-coded in addHinge for now
+    for (var mtrName of Object.keys(motors)) {
+        if (mtrName.includes("front-upper")) {
+            motors[mtrName].targetAngle = Math.PI / 4;
+        } else if (mtrName.includes("front-lower")) {
+            motors[mtrName].targetAngle = -Math.PI / 2;
+        } else if (mtrName.includes("back-upper")) {
+            motors[mtrName].targetAngle = -Math.PI / 4;
+        } else if (mtrName.includes("back-lower")) {
+            motors[mtrName].targetAngle = Math.PI / 2;
+        }
+    }
 }
 
-var temp = true;
+// function mod(a, n) {
+//     return a - Math.floor(a / n) * n;
+// }
+
 function animate(time) {
     requestAnimationFrame(animate);
 
@@ -346,17 +385,38 @@ function animate(time) {
 
     // Actuate motors
     for (var mtr of Object.values(motors)) {
-        var rot1 = mtr.body1.quaternion;
-        var rot2 = mtr.body2.quaternion;
-        mtr.angle = 2* Math.acos(rot1.mult(rot2.inverse()).w)
+        // Get the signed angle of the hinge (NEED A BETTER WAY)
+        var rot1 = new CANNON.Vec3();
+        mtr.body1.quaternion.toEuler(rot1);
 
-        if (mtr.state === "back" && mtr.angle > mtr.hi) {
-            mtr.servo.setMotorSpeed(-mtr.speed);
-            mtr.state = "forward";
-        } else if (mtr.state === "forward" && mtr.angle < mtr.lo) {
-            mtr.servo.setMotorSpeed(mtr.speed);
-            mtr.state = "back";
+        var rot2 = new CANNON.Vec3();
+        mtr.body2.quaternion.toEuler(rot2);
+
+        var currentAngle = rot1.z - rot2.z;
+
+        // var currentAngleRaw = 2 * Math.acos(rot1.mult(rot2.inverse()).w);
+
+        // Calculate the next hinge angle
+        // dReal fTargetAngle = cp.AMP * sin(cp.OMG * cp.time) + cp.BIA;
+        var targetAngle = mtr.targetAngle;
+
+        // Calculate angle error
+        var errorAngle = targetAngle - currentAngle;
+        // errorAngle = mod(errorAngle + Math.PI, 2 * Math.PI) - Math.PI;
+
+        // Use the error between target and current to set the hinge velocity
+        var angVel = MAX_MOTOR_VEL;
+        if (errorAngle < 0) {
+            angVel = -MAX_MOTOR_VEL;
         }
+
+        // Reduce motor velocity if close
+        if (Math.abs(errorAngle) <= MAX_MOTOR_VEL * fixedTimeStep) {
+            angVel *= Math.abs(errorAngle) / (MAX_MOTOR_VEL * fixedTimeStep);
+        }
+
+        // Set the motor velocity
+        mtr.servo.setMotorSpeed(angVel);
     }
 
     renderer.render(scene, camera);

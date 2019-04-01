@@ -20,14 +20,20 @@ var world;
 
 var fixedTimeStep = 1.0 / 60.0,
     maxSubSteps = 3,
-    lastTime;
+    lastTime,
+    timevar = 1;
 
 // three/cannon objs
 var objects = {};
 
 // Joint control
-var motors = {};
-
+var motors = {},
+    motor_direction = {
+        back_left: "back",
+        back_right: "back",
+        front_left: "back",
+        front_right: "back"
+    }
 // UI
 var isPaused = false;
 
@@ -346,8 +352,10 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
 }
 
 function setupMotors() {
+    console.log(mtrName)
     // Setup motor angles, speeds, etc.
     for (var mtrName of Object.keys(motors)) {
+        console.log(mtrName)
         if (mtrName.includes("front-upper")) {
             motors[mtrName].targetAngle = Math.PI / 4;
         } else if (mtrName.includes("front-lower")) {
@@ -383,6 +391,14 @@ function animate(time) {
         obj.mesh.quaternion.copy(obj.body.quaternion);
     }
 
+    if(objects['torso'].body.position.x < 5) {
+        for (var obj of Object.values(objects))
+        {
+            obj.body.position.x += 0.01;
+        }
+    }
+        
+    
     // Actuate motors
     for (var mtr of Object.values(motors)) {
         // Get the signed angle of the hinge (NEED A BETTER WAY)
@@ -398,7 +414,8 @@ function animate(time) {
 
         // Calculate the next hinge angle
         // dReal fTargetAngle = cp.AMP * sin(cp.OMG * cp.time) + cp.BIA;
-        var targetAngle = mtr.targetAngle;
+        var targetAngle = mtr.targetAngle,
+            TEMP_ANGLE;
 
         // Calculate angle error
         var errorAngle = targetAngle - currentAngle;
@@ -417,6 +434,18 @@ function animate(time) {
 
         // Set the motor velocity
         mtr.servo.setMotorSpeed(angVel);
+
+        if(timevar < 100){
+            console.log(currentAngle, targetAngle);
+            timevar+=1;
+        }
+
+        if(Math.round(currentAngle * 100) / 100 === Math.round(targetAngle * 100) / 100){
+            mtr.targetAngle = 0
+        }
+        else if(mtr.targetAngle === 0){
+           mtr.targetAngle += Math.PI/180;
+         }
     }
 
     renderer.render(scene, camera);

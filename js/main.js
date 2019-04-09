@@ -21,31 +21,14 @@ var world;
 
 var fixedTimeStep = 1.0 / 60.0,
     maxSubSteps = 3,
-    lastTime,
-    timevar = 1;
+    lastTime;
 
 // three/cannon objs
 var objects = {};
 
 // Joint control
-var motors = {},
-    motor_direction = {
-        back_left: "back",
-        back_right: "back",
-        front_left: "back",
-        front_right: "back"
-    },
-    motor_angles = {
-        'front-lower-left-leg-motor': [-Math.PI/2, 0, Math.PI/2],
-        'front-lower-right-leg-motor': [-Math.PI/2, 0, Math.PI/2],
-        'back-lower-left-leg-motor': [Math.PI/2, 0, -Math.PI/2],
-        'back-lower-right-leg-motor': [Math.PI/2, 0, -Math.PI/2],
-        'front-upper-left-leg-motor': [Math.PI/4, 0, -Math.PI/4],
-        'front-upper-right-leg-motor': [Math.PI/4, 0, -Math.PI/4],
-        'back-upper-left-leg-motor': [-Math.PI/4, 0, Math.PI/4],
-        'back-upper-right-leg-motor': [-Math.PI/4, 0, Math.PI/4],
+var motors = {};
 
-    }
 // UI
 var isPaused = false;
 
@@ -341,10 +324,11 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
     );
 
     motors[motorName] = {
-        name: motorName,
         servo: motor,
-        targetIndex: 0,
-        targetAngle:0,
+        targetAngles: [],
+        targetAngleIndex: 0,
+        targetAngleDt: 0.2,
+        targetUpdateTime: 0,
         body1: objects[name1].body,
         body2: objects[name2].body
     };
@@ -356,13 +340,24 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
 }
 
 function setupMotors() {
-    // Setup motor angles, speeds, etc.
-    for (var mtr of Object.values(motors)) {
-        mtr.targetAngle = motor_angles[mtr.name][mtr.targetIndex];
-        console.log(motor_angles[mtr.name]);
-    }
-    
-}
+    var HIP = [
+        0, 0.07, 0.14, 0.21, 0.28, 0.35, 0.42, 0.49, 0.56, 0.63,
+        0.7, 0.77, 0.84, 0.91, 0.98, 1, 0.8, 0.6, 0.4, 0.2, 0
+    ];
+
+    var KNEE = [
+        0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1, 0.86, 0.72,
+        0.58, 0.44, 0.3, 0.16, 0.02, 0, 0, 0, 0, 0, 0
+    ];
+
+    // var HIP = [Math.PI / 4];
+    // var KNEE = [Math.PI / 2];
+
+    // Math.PI / 4
+    motors["front-upper-right-leg-motor"].targetAngles = HIP;
+
+    // -Math.PI / 2
+    motors["front-lower-right-leg-motor"].targetAngles = KNEE.map(x => x * -0.5 - Math.PI/2);
 
     // Math.PI / 4
     motors["front-upper-left-leg-motor"].targetAngles[0] = Math.PI / 4;
@@ -404,78 +399,45 @@ function animate(time) {
         obj.mesh.quaternion.copy(obj.body.quaternion);
     }
 
-
     // Actuate motors
     for (var mtr of Object.values(motors)) {
-        
-        // Set the motor velocity
-        mtr.servo.setMotorSpeed(getAngVel(mtr));
+        //
+        // Get the signed angle of the hinge
+        //
 
-        //Individually deal with each hinge to achieve specific gait| Currently set bending front two legs
-        switch(mtr.name){
+        // TODO: create permanent vectors
+        var forward = new CANNON.Vec3(1, 0, 0);
+        var sideway = new CANNON.Vec3(0, 0, 1);
 
-            case 'front-lower-left-leg-motor': 
-                mtr.targetIndex = 0;
-                break;
-            case 'front-lower-right-leg-motor':
-                mtr.targetIndex = 0;
-                break;
-            case 'front-upper-left-leg-motor':
-                mtr.targetIndex = 1;
-                break;
-            case 'front-upper-right-leg-motor':
-                mtr.targetIndex = 1;
-                break;
-            case 'back-lower-left-leg-motor':
-                mtr.targetIndex = 1;
-                break;
-            case 'back-lower-right-leg-motor':
-                mtr.targetIndex = 1;
-                break;
-            case 'back-upper-left-leg-motor':
-                mtr.targetIndex = 1;
-                break;
-            case 'back-upper-right-leg-motor':
-                mtr.targetIndex = 1;
-                break;
+        var vn = mtr.body1.vectorToWorldFrame(sideway);
+        var va = mtr.body1.vectorToWorldFrame(forward);
+        var vb = mtr.body2.vectorToWorldFrame(forward);
+
+        var currentAngle = Math.atan2(vb.cross(va).dot(vn), va.dot(vb));
+
+        //
+        // Calculate the motor velocity
+        //
+
+        var targetAngle = mtr.targetAngles[mtr.targetAngleIndex];
+        if (world.time > mtr.targetUpdateTime) {
+            mtr.targetUpdateTime += mtr.targetAngleDt;
+            mtr.targetAngleIndex =
+                (mtr.targetAngleIndex + 1) % mtr.targetAngles.length;
         }
+
+        var errorAngle = targetAngle - currentAngle;
+
+        // TODO: should take into account closest path to target angle
+        var angVel = errorAngle > 0 ? MAX_MOTOR_VEL : -MAX_MOTOR_VEL;
+
+        // Reduce motor velocity if close
+        if (Math.abs(errorAngle) <= MAX_MOTOR_VEL * fixedTimeStep) {
+            angVel *= Math.abs(errorAngle) / (MAX_MOTOR_VEL * fixedTimeStep);
+        }
+
+        mtr.servo.setMotorSpeed(angVel);
     }
 
     renderer.render(scene, camera);
-}
-
-function getCurrAngle(mtr){
-
-    // Get the signed angle of the hinge (NEED A BETTER WAY)
-    var rot1 = new CANNON.Vec3();
-    mtr.body1.quaternion.toEuler(rot1);
-
-    var rot2 = new CANNON.Vec3();
-    mtr.body2.quaternion.toEuler(rot2);
-
-    var currentAngle = rot1.z - rot2.z;
-
-    return currentAngle;
-}
-
-function getAngVel(mtr){
-
-    // Calculate the next hinge angle
-    var targetAngle = motor_angles[mtr.name][mtr.targetIndex];
-
-    // Calculate angle error
-    var errorAngle = targetAngle - getCurrAngle(mtr);
-
-    var angVel = MAX_MOTOR_VEL;
-    if (errorAngle < 0) {
-        
-        angVel = -MAX_MOTOR_VEL;
-    }
-
-    // Reduce motor velocity if close
-    if (Math.abs(errorAngle) <= MAX_MOTOR_VEL * fixedTimeStep) {
-        angVel *= Math.abs(errorAngle) / (MAX_MOTOR_VEL * fixedTimeStep);
-    }
-    
-    return angVel;
 }

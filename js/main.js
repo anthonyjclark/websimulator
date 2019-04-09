@@ -10,7 +10,8 @@ var DENSITY = 500,
     TORSO_Y = 0.4,
     TORSO_Z = 1,
     TORSO_COLOR = "gray",
-    MAX_MOTOR_VEL = 1;
+    MAX_MOTOR_VEL = 4,
+    GRAVITY = -9.82/5;
 
 // three vars
 var camera, scene, renderer, controls, spotLight;
@@ -171,7 +172,7 @@ function initTHREE() {
 
 function initCANNON() {
     world = new CANNON.World();
-    world.gravity.set(0, -9.82, 0);
+    world.gravity.set(0, GRAVITY, 0);
 
     // Create a plane (mass == 0 makes the body static)
     var groundShape = new CANNON.Plane();
@@ -209,7 +210,7 @@ function createLeg(parent, frontback, leftright) {
     var fb = frontback === "front" ? 1 : -1;
     var lr = leftright === "right" ? 1 : -1;
 
-    // Upper leg body
+    // Upper leg (ul)
     var ulName = `${frontback}-upper-${leftright}-leg`;
 
     var ulPos = [
@@ -217,31 +218,20 @@ function createLeg(parent, frontback, leftright) {
         UPPER_LEG_HEIGHT * 1.5,
         (TORSO_Z / 2 + UPPER_LEG_RADIUS) * lr
     ];
-    var ulMass =
-        DENSITY *
-        Math.PI *
-        UPPER_LEG_RADIUS *
-        UPPER_LEG_RADIUS *
-        UPPER_LEG_HEIGHT;
 
-    addCylinder(
+    var torsoPivot = [ulPos[0], 0, ulPos[2]];
+
+    createLegSegment(
+        parent,
         ulName,
-        UPPER_LEG_RADIUS,
-        UPPER_LEG_HEIGHT,
         ulPos,
-        ulMass,
-        UPPER_LEG_COLOR
+        UPPER_LEG_HEIGHT,
+        UPPER_LEG_RADIUS,
+        UPPER_LEG_COLOR,
+        torsoPivot
     );
 
-    // Upper leg joint to torso
-    var ulPivot = [0, UPPER_LEG_HEIGHT / 2, 0];
-    var ulAxis = [0, 0, 1];
-    var torsoPivot = [ulPos[0], 0, ulPos[2]];
-    var torsoAxis = [0, 0, 1];
-    var mName = `${ulName}-motor`;
-    addHinge(parent, ulName, torsoPivot, ulPivot, torsoAxis, ulAxis, mName);
-
-    // Lower leg
+    // Lower leg (ll)
     var llName = `${frontback}-lower-${leftright}-leg`;
 
     var llPos = [
@@ -249,29 +239,30 @@ function createLeg(parent, frontback, leftright) {
         LOWER_LEG_HEIGHT * 0.5,
         (TORSO_Z / 2 + UPPER_LEG_RADIUS) * lr
     ];
-    var llMass =
-        DENSITY *
-        Math.PI *
-        LOWER_LEG_RADIUS *
-        LOWER_LEG_RADIUS *
-        LOWER_LEG_HEIGHT;
 
-    addCylinder(
-        llName,
-        LOWER_LEG_RADIUS,
-        LOWER_LEG_HEIGHT,
-        llPos,
-        llMass,
-        LOWER_LEG_COLOR
-    );
-
-    // Lower leg joint to upper leg
-    var llPivot = [0, LOWER_LEG_HEIGHT / 2, 0];
-    var llAxis = [0, 0, 1];
     var ulPivot = [0, -UPPER_LEG_HEIGHT / 2, 0];
-    var ulAxis = [0, 0, 1];
-    var mName = `${llName}-motor`;
-    addHinge(ulName, llName, ulPivot, llPivot, ulAxis, llAxis, mName);
+
+    createLegSegment(
+        ulName,
+        llName,
+        llPos,
+        LOWER_LEG_HEIGHT,
+        LOWER_LEG_RADIUS,
+        LOWER_LEG_COLOR,
+        ulPivot
+    );
+}
+
+function createLegSegment(parent, name, pos, height, radius, color, pPivot) {
+    // Create body
+    var mass = DENSITY * Math.PI * radius * radius * height;
+    addCylinder(name, radius, height, pos, mass, color);
+
+    // Create hinge motor
+    var cPivot = [0, height / 2, 0];
+    var axis = [0, 0, 1];
+    var mName = `${name}-motor`;
+    addHinge(parent, name, pPivot, cPivot, axis, axis, mName);
 }
 
 function addCylinder(name, radius, height, position, mass, color) {
@@ -373,9 +364,26 @@ function setupMotors() {
     
 }
 
-// function mod(a, n) {
-//     return a - Math.floor(a / n) * n;
-// }
+    // Math.PI / 4
+    motors["front-upper-left-leg-motor"].targetAngles[0] = Math.PI / 4;
+
+    // -Math.PI / 2
+    motors["front-lower-left-leg-motor"].targetAngles[0] = -Math.PI / 2;
+
+    // -Math.PI / 4
+    motors["back-upper-left-leg-motor"].targetAngles[0] = -Math.PI / 4;
+
+    // Math.PI / 2
+    motors["back-lower-left-leg-motor"].targetAngles[0] = Math.PI / 2;
+
+    // -Math.PI / 4
+    motors["back-upper-right-leg-motor"].targetAngles[0] = -Math.PI / 4;
+    // = HIP.map(x => x * -1);
+
+    // Math.PI / 2
+    motors["back-lower-right-leg-motor"].targetAngles[0] = Math.PI / 2;
+    // = KNEE.map(x => x * 0.5 + Math.PI/2);
+}
 
 function animate(time) {
     requestAnimationFrame(animate);

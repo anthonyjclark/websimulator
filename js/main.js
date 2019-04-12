@@ -354,29 +354,28 @@ function setupMotors() {
     // var KNEE = [Math.PI / 2];
 
     // Math.PI / 4
-    motors["front-upper-right-leg-motor"].targetAngles = HIP;
+    motors["front-upper-right-leg-motor"].targetAngles = HIP; //Math.PI/4;  
 
     // -Math.PI / 2
-    motors["front-lower-right-leg-motor"].targetAngles = KNEE.map(x => x * -0.5 - Math.PI/2);
+    motors["front-lower-right-leg-motor"].targetAngles = KNEE.map(x => x * 0.5 - Math.PI/2); //-Math.PI/2;    //
 
     // Math.PI / 4
-    motors["front-upper-left-leg-motor"].targetAngles[0] = Math.PI / 4;
+    motors["front-upper-left-leg-motor"].targetAngles = HIP.map(x => Math.PI/4 - x);
 
     // -Math.PI / 2
-    motors["front-lower-left-leg-motor"].targetAngles[0] = -Math.PI / 2;
+    motors["front-lower-left-leg-motor"].targetAngles = KNEE.map(x => x * -0.5 - Math.PI/2);
 
     // -Math.PI / 4
-    motors["back-upper-left-leg-motor"].targetAngles[0] = -Math.PI / 4;
-
+    motors["back-upper-left-leg-motor"].targetAngles = HIP.map(x=>-x);
     // Math.PI / 2
-    motors["back-lower-left-leg-motor"].targetAngles[0] = Math.PI / 2;
+    motors["back-lower-left-leg-motor"].targetAngles = KNEE.map(x => x * 0.5 + Math.PI/2);
 
     // -Math.PI / 4
-    motors["back-upper-right-leg-motor"].targetAngles[0] = -Math.PI / 4;
+    motors["back-upper-right-leg-motor"].targetAngles = HIP.map(x => x * 0.5 - Math.PI/4);
     // = HIP.map(x => x * -1);
 
     // Math.PI / 2
-    motors["back-lower-right-leg-motor"].targetAngles[0] = Math.PI / 2;
+    motors["back-lower-right-leg-motor"].targetAngles = KNEE.map(x=>Math.PI/2-x*0.5);
     // = KNEE.map(x => x * 0.5 + Math.PI/2);
 }
 

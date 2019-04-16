@@ -341,41 +341,41 @@ function addHinge(name1, name2, piv1, piv2, ax1, ax2, motorName) {
 
 function setupMotors() {
     var HIP = [
-        0, 0.07, 0.14, 0.21, 0.28, 0.35, 0.35, 0.28, 0.21, 0.14, 0.07, 0, -0.07, -0.14, -0.21,
-        -0.28, -0.28, -0.35, -0.35, -0.28, -0.21, -0.14, -0.07, 0
+        0, 0.07, 0.14, 0.21, 0.28, 0.35, 0.42, 0.49, 0.49, 0.42, 0.35, 0.28, 0.21, 0.14, 0.07, 0, -0.07, -0.14, -0.21,
+        -0.28, -0.35, -0.35, -0.28, -0.21, -0.14, -0.07, 0
     ];
 
     var KNEE = [
         0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1, 0.86, 0.72,
-        0.58, 0.44, 0.3, 0.16, 0.02
+        0.58, 0.44, 0.3, 0.16, 0.02, 0, 0, 0, 0, 0, 0
     ];
 
     // var HIP = [Math.PI / 4];
     // var KNEE = [Math.PI / 2];
 
     // Math.PI / 4
-    motors["front-upper-right-leg-motor"].targetAngles = HIP; //Math.PI/4;  
+    motors["front-upper-right-leg-motor"].targetAngles = HIP;  
 
     // -Math.PI / 2
-    motors["front-lower-right-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * 0.5 - Math.PI/2); //-Math.PI/2;    //
+    motors["front-lower-right-leg-motor"].targetAngles = KNEE.map(x => x * 0.5 - Math.PI/2); 
 
     // Math.PI / 4
     motors["front-upper-left-leg-motor"].targetAngles = HIP.map(x =>-x);
 
     // -Math.PI / 2
-    motors["front-lower-left-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * -0.5 - Math.PI/2);
+    motors["front-lower-left-leg-motor"].targetAngles = KNEE.map(x => x * 0.5 - Math.PI/2);
 
     // -Math.PI / 4
     motors["back-upper-left-leg-motor"].targetAngles = HIP;
     // Math.PI / 2
-    motors["back-lower-left-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * 0.5 + Math.PI/2);
+    motors["back-lower-left-leg-motor"].targetAngles = KNEE.map(x => x * -0.5 + Math.PI/2);
 
     // -Math.PI / 4
     motors["back-upper-right-leg-motor"].targetAngles = HIP.map(x => -x);
     // = HIP.map(x => x * -1);
 
     // Math.PI / 2
-    motors["back-lower-right-leg-motor"].targetAngles[0] = 0;//KNEE.map(x=>Math.PI/2-x*0.5);
+    motors["back-lower-right-leg-motor"].targetAngles = KNEE.map(x=>Math.PI/2 - x*0.5);
     // = KNEE.map(x => x * 0.5 + Math.PI/2);
 }
 

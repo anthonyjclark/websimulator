@@ -7,7 +7,7 @@ Things to do:
     Examples:
         * Max limb heights and min torso values {Limbs collide}
         * Max torso dimensions and min limb values {Body falls} [fixed]
-        * Chassis Length > 2 * (ul + ll) [validate]
+        * Chassis Length > 2 * (ul + ll) [fixed]
         * User input for limb angles - max/min for upper and lower. 
 
 

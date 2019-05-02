@@ -11,7 +11,9 @@ document.getElementById('input-submit').addEventListener('click', () =>{
     ll_height = Number(document.getElementById('upper-limb-slider').value),
     t_length =  Number(document.getElementById('torso-length-slider').value),
     t_width =  Number(document.getElementById('torso-width-slider').value),
-    t_height =  Number(document.getElementById('torso-height-slider').value);
+    t_height =  Number(document.getElementById('torso-height-slider').value),
+    ul_angle =  Number(document.getElementById('ul-angle-slider').value),
+    ll_angle = Number(document.getElementById('ll-angle-slider').value);
 
     if(inputIsValid()){
         document.getElementById('input-container').style.display = "none";
@@ -25,7 +27,8 @@ document.getElementById('input-submit').addEventListener('click', () =>{
 
 function inputIsValid() {
     
-    return t_length >= 2*(ul_height+ll_height);
+    return t_length >= 2*(ul_height+ll_height) &&
+        t_length >= 2*ul_height*Math.cos(ul_angle);
 }
 
 function main(){
@@ -41,6 +44,8 @@ function main(){
         TORSO_X = t_length || 3,
         TORSO_Y = t_height || 0.4,
         TORSO_Z = t_width || 1,
+        UPPER_LIMB_ANGLE = ul_angle || Math.PI/4,
+        LOWER_LIMB_ANGLE = ll_angle || Math.PI/2,
         TORSO_COLOR = "gray",
         MAX_MOTOR_VEL = 4,
         GRAVITY = -9.82/5;
@@ -79,9 +84,10 @@ function main(){
     }
 
     function exitSim(){
-        document.getElementById('canvas').style.display = "none"; //TODO: Destroy World Appropiately
+        document.getElementById('canvas').style.display = "none"; 
         document.getElementById('ui').style.display = "none";
         document.getElementById('input-container').style.display = "block";
+        window.location.reload(true); 
 
     }
 
@@ -396,28 +402,28 @@ function main(){
         // var KNEE = [Math.PI / 2];
 
         // Math.PI / 4
-        motors["front-upper-right-leg-motor"].targetAngles = HIP;  
+        motors["front-upper-right-leg-motor"].targetAngles[0] = UPPER_LIMB_ANGLE;  
 
         // -Math.PI / 2
-        motors["front-lower-right-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * 0.5 - Math.PI/2); 
+        motors["front-lower-right-leg-motor"].targetAngles[0] = -LOWER_LIMB_ANGLE;//KNEE.map(x => x * 0.5 - Math.PI/2); 
 
         // Math.PI / 4
-        motors["front-upper-left-leg-motor"].targetAngles = HIP.map(x =>-x);
+        motors["front-upper-left-leg-motor"].targetAngles[0] = UPPER_LIMB_ANGLE;
 
         // -Math.PI / 2
-        motors["front-lower-left-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * 0.5 - Math.PI/2);
+        motors["front-lower-left-leg-motor"].targetAngles[0] = -LOWER_LIMB_ANGLE;//KNEE.map(x => x * 0.5 - Math.PI/2);
 
         // -Math.PI / 4
-        motors["back-upper-left-leg-motor"].targetAngles = HIP;
+        motors["back-upper-left-leg-motor"].targetAngles[0] = -UPPER_LIMB_ANGLE;
         // Math.PI / 2
-        motors["back-lower-left-leg-motor"].targetAngles[0] = 0;//KNEE.map(x => x * -0.5 + Math.PI/2);
+        motors["back-lower-left-leg-motor"].targetAngles[0] = LOWER_LIMB_ANGLE;//KNEE.map(x => x * -0.5 + Math.PI/2);
 
         // -Math.PI / 4
-        motors["back-upper-right-leg-motor"].targetAngles = HIP.map(x => -x);
+        motors["back-upper-right-leg-motor"].targetAngles[0] = -UPPER_LIMB_ANGLE;
         // = HIP.map(x => x * -1);
 
         // Math.PI / 2
-        motors["back-lower-right-leg-motor"].targetAngles[0] = 0;//KNEE.map(x=>Math.PI/2 - x*0.5);
+        motors["back-lower-right-leg-motor"].targetAngles[0] = LOWER_LIMB_ANGLE;//KNEE.map(x=>Math.PI/2 - x*0.5);
         // = KNEE.map(x => x * 0.5 + Math.PI/2);
     }
 
